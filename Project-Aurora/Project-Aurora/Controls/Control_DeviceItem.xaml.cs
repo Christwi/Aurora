@@ -77,9 +77,8 @@ namespace Aurora.Controls
                     else
                     {
                         var enableTask = Global.dev_manager.EnableDevice(Device.Device);
-                        UpdateControls();
                         btnStart.IsEnabled = false;
-                        enableTask.ContinueWith(_ => UpdateControls());
+                        enableTask.ContinueWith(_ => this.Dispatcher.Invoke(() => { UpdateControls(); }));
                     }
                 }
             }
