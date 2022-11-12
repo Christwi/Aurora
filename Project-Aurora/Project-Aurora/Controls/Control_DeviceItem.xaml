@@ -11,9 +11,9 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0" x:Name="deviceName" Margin="1" Text="Name" Width="128" VerticalAlignment="Center"/>
-        <TextBlock x:Name="deviceDetails" Grid.Column="1" Margin="1" Text="Device Details" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" />
+        <TextBlock x:Name="deviceDetails" Grid.Column="1" Margin="1,0,1,0" Text="Device Details" TextWrapping="Wrap" VerticalAlignment="Center" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <TextBlock x:Name="devicePerformance" Text="000 ms" Margin="1" Width="40" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+            <TextBlock x:Name="devicePerformance" Text="000 ms" Margin="1" Width="55" VerticalAlignment="Center" HorizontalAlignment="Center"/>
             <Button x:Name="btnStart" Content="Start" Margin="1" Width="55" Click="btnToggleOnOff_Click" />
             <Button x:Name="btnEnable" Content="Enabled" Margin="1" Width="55" Click="btnToggleEnableDisable_Click" />
             <Button x:Name="btnOptions" Content="Options" Margin="1" Width="55" Click="btnViewOptions_Click" />
