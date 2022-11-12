@@ -35,6 +35,7 @@ namespace Aurora.Devices.CoolerMaster
                 if (Native.IsDevicePlug(device) && Native.EnableLedControl(true, device))
                 {
                     _initializedDevices.Add((device, Native.COLOR_MATRIX.Create()));
+                    Native.RefreshLed(true);
                 }
             }
 
@@ -46,9 +47,7 @@ namespace Aurora.Devices.CoolerMaster
             if (!IsInitialized)
                 return;
 
-            foreach (var (dev, _) in _initializedDevices)
-                Native.EnableLedControl(false, dev);
-
+            _initializedDevices.ForEach(d => Native.EnableLedControl(false, d.Device));
             _initializedDevices.Clear();
 
             IsInitialized = false;
