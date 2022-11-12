@@ -30,16 +30,19 @@ namespace Aurora.Devices.CoolerMaster
 
             LogInfo($"Trying to initialize CoolerMaster SDK version {Native.GetCM_SDK_DllVer()}");
 
-            foreach (var device in Native.Devices.Where(d => d != Native.DEVICE_INDEX.DEFAULT))
+            lock (_initializedDevices)
             {
-                if (Native.IsDevicePlug(device) && Native.EnableLedControl(true, device))
+                foreach (var device in Native.Devices.Where(d => d != Native.DEVICE_INDEX.DEFAULT))
                 {
-                    _initializedDevices.Add((device, Native.COLOR_MATRIX.Create()));
-                    Native.RefreshLed(true);
+                    if (Native.IsDevicePlug(device) && Native.EnableLedControl(true, device))
+                    {
+                        _initializedDevices.Add((device, Native.COLOR_MATRIX.Create()));
+                        Native.RefreshLed(true);
+                    }
                 }
-            }
 
-            return IsInitialized = _initializedDevices.Any();
+                return IsInitialized = _initializedDevices.Any();
+            }
         }
 
         public override void Shutdown()
@@ -47,46 +50,52 @@ namespace Aurora.Devices.CoolerMaster
             if (!IsInitialized)
                 return;
 
-            _initializedDevices.ForEach(d => Native.EnableLedControl(false, d.Device));
-            _initializedDevices.Clear();
+            lock (_initializedDevices)
+            { 
+                _initializedDevices.ForEach(d => Native.EnableLedControl(false, d.Device));
+                _initializedDevices.Clear();
+            };
 
             IsInitialized = false;
         }
 
         protected override bool UpdateDevice(Dictionary<DK, Color> keyColors, DoWorkEventArgs e, bool forced = false)
         {
-            foreach (var (dev, colors) in _initializedDevices)
+            lock (_initializedDevices)
             {
-                if (Native.Mice.Contains(dev) && Global.Configuration.DevicesDisableMouse)
-                    continue;
-                if (Native.Keyboards.Contains(dev) && Global.Configuration.DevicesDisableKeyboard)
-                    continue;
-
-                if (!KeyMaps.LayoutMapping.TryGetValue(dev, out var dict))
+                foreach (var (dev, colors) in _initializedDevices)
                 {
-                    dict = KeyMaps.GenericFullSize;
-                    if (!_loggedLayout)
+                    if (Native.Mice.Contains(dev) && Global.Configuration.DevicesDisableMouse)
+                        continue;
+                    if (Native.Keyboards.Contains(dev) && Global.Configuration.DevicesDisableKeyboard)
+                        continue;
+
+                    if (!KeyMaps.LayoutMapping.TryGetValue(dev, out var dict))
                     {
-                        LogError($"Could not find layout for device {Enum.GetName(typeof(Native.DEVICE_INDEX), dev)}, using generic.");
-                        _loggedLayout = true;
+                        dict = KeyMaps.GenericFullSize;
+                        if (!_loggedLayout)
+                        {
+                            LogError($"Could not find layout for device {Enum.GetName(typeof(Native.DEVICE_INDEX), dev)}, using generic.");
+                            _loggedLayout = true;
+                        }
                     }
+
+                    foreach (var (dk, clr) in keyColors)
+                    {
+                        DK key = dk;
+                        //HACK: the layouts for some reason switch backslash and enter
+                        //around between ANSI and ISO needlessly. We swap them around here
+                        if (key == DK.ENTER && !Global.kbLayout.Loaded_Localization.IsANSI())
+                            key = DK.BACKSLASH;
+
+                        if (dict.TryGetValue(key, out var position))
+                            colors.KeyColor[position.row, position.column] = new Native.KEY_COLOR(ColorUtils.CorrectWithAlpha(clr));
+                    }
+
+                    Native.SetAllLedColor(colors, dev);
                 }
-
-                foreach (var (dk, clr) in keyColors)
-                {
-                    DK key = dk;
-                    //HACK: the layouts for some reason switch backslash and enter
-                    //around between ANSI and ISO needlessly. We swap them around here
-                    if (key == DK.ENTER && !Global.kbLayout.Loaded_Localization.IsANSI())
-                        key = DK.BACKSLASH;
-
-                    if (dict.TryGetValue(key, out var position))
-                        colors.KeyColor[position.row, position.column] = new Native.KEY_COLOR(ColorUtils.CorrectWithAlpha(clr));
-                }
-
-                Native.SetAllLedColor(colors, dev);
+                return true;
             }
-            return true;
         }
     }
 }
